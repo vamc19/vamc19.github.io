@@ -1,0 +1,113 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>linux on a (mostly) pointless blog</title>
+    <link>https://blog.mostlypointless.dev/tags/linux/</link>
+    
+    <language>en-us</language>
+    
+    
+    <atom:link href="https://blog.mostlypointless.dev/tags/linux/" rel="self" type="application/rss+xml" />
+    
+    
+    
+    <item>
+      <title>Adventures in booting Linux on Raspberry Pi 4</title>
+      <link>https://blog.mostlypointless.dev/posts/net-boot-rpi/</link>
+      <pubDate>Fri, 26 Jun 2020 00:00:00 -0700</pubDate>
+      
+      <guid>https://blog.mostlypointless.dev/posts/net-boot-rpi/</guid>
+      <description>&lt;p&gt;Almost two months ago, I started building a four node Raspberry Pi 4 cluster for a project I’m working on. Figuring out the best way to get Linux on each node lead me down a rabbit hole and I spent the next four weeks &lt;a href=&#34;http://www.catb.org/~esr/jargon/html/Y/yak-shaving.html&#34;&gt;yak shaving&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The most common way to boot a Pi is from an SD card. But they are slow and unreliable - I don&amp;rsquo;t like them. Certain models of Pi 2 and Pi 3 support &lt;a href=&#34;https://www.raspberrypi.org/documentation/hardware/raspberrypi/bootmodes/msd.md&#34;&gt;booting from USB storage&lt;/a&gt;, but Pi 4 cannot do that yet. So, I’m stuck with using an SD card for each Pi. Or so I thought.&lt;/p&gt;
+&lt;h3 id=&#34;enter-pxe-boot&#34;&gt;Enter PXE boot&lt;/h3&gt;
+&lt;p&gt;Turns out, Raspberry Pi 2 and 3 also &lt;a href=&#34;https://www.raspberrypi.org/documentation/hardware/raspberrypi/bootmodes/net.md&#34;&gt;support network booting&lt;/a&gt;. A beta firmware was released late last year that enables &lt;a href=&#34;https://en.wikipedia.org/wiki/Preboot_Execution_Environment&#34;&gt;PXE&lt;/a&gt; for Pi 4. I found &lt;a href=&#34;https://linuxhit.com/raspberry-pi-pxe-boot-netbooting-a-pi-4-without-an-sd-card&#34;&gt;an article on LinuxHit&lt;/a&gt; detailing the process of installing the firmware and setting up network boot.&lt;/p&gt;
+&lt;p&gt;Just to test this out, I updated the firmware and configured PXE server on one of the Pis. I tried booting another Pi over the network and&amp;hellip;it worked!
+Here is the gist of PXE server setup process:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Copy the contents of &lt;code&gt;/boot&lt;/code&gt; and the rest of &lt;code&gt;/&lt;/code&gt; into separate folders on your local filesystem. I copied mine to &lt;code&gt;/tftp/raspbian-boot&lt;/code&gt; and &lt;code&gt;/nfs/raspbian-root&lt;/code&gt; respectively.&lt;/li&gt;
+&lt;li&gt;Install and configure &lt;code&gt;dnsmasq&lt;/code&gt; to enable TFTP and use &lt;code&gt;/tftp&lt;/code&gt; as &lt;code&gt;tftp-root&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Install and configure NFS server to share &lt;code&gt;/tftp/raspbian-boot&lt;/code&gt; and &lt;code&gt;/nfs/raspbian-root&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Edit the contents of &lt;code&gt;/nfs/raspbian-root/fstab&lt;/code&gt; to mount the boot partition.&lt;/li&gt;
+&lt;li&gt;Edit &lt;code&gt;/nfs/raspbian-boot/cmdline.txt&lt;/code&gt; to&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;serial0,115200 console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tty1 root&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/nfs nfsroot&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&amp;lt;IP addr&amp;gt;:/nfs/raspbian-root,vers&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;4.1,proto&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tcp rw ip&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;dhcp rootwait elevator&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;deadline
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;pxe-booting-3-nodes&#34;&gt;PXE booting 3 nodes&lt;/h3&gt;
+&lt;p&gt;I cannot just boot all three nodes from the same boot and root filesystems since they are not read-only and I don’t want to maintain a copy for each node. I’ll instead do what Docker does - create OverlayFS for each Pi using raspbian-root and raspbian-boot as my lower dirs. I’ll share them over NFS like before.&lt;/p&gt;
+&lt;p&gt;Configuration for one of the nodes is below. Other two nodes follow the same pattern. Note that I moved raspbian-root and raspbian-boot to a USB drive (mounted at &lt;code&gt;/mnt&lt;/code&gt;) to get better r/w performance.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ mount -t overlay nog-boot -o lowerdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/raspbian-boot,upperdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/upper/nog-boot,workdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/work/nog-boot -o nfs_export&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;on -o index&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;on -o redirect_dir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;nofollow /tftpboot/dc-a6-32-XX-XX-XX  
+&lt;span style=&#34;color:#75715e&#34;&gt;# dc-a6-32-XX-XX-XX is the MAC address of the Pi. See dnsmasq’s tftp-unique-root option to know why :)&lt;/span&gt; 
+
+$ mount -t overlay nog-root -o lowerdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/raspbian-root,upperdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/work/nog-root,workdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/work/nog-root -o nfs_export&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;on -o index&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;on -o redirect_dir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;nofollow /nfs/nog
+
+$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;serial0,115200 console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tty1 root&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/nfs nfsroot&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&amp;lt;IP addr&amp;gt;:/nfs/nog,vers&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;4.1,proto&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tcp rw ip&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;dhcp rootwait elevator&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;deadline
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;(In case you are wondering what &lt;code&gt;nog&lt;/code&gt; is: I name my servers after planets from the Star Wars universe. Following this tradition, I’ve named the Pis Mandalore (PXE server), Nog, Ordo and Werda)&lt;/p&gt;
+&lt;p&gt;You probably are thinking that this worked. It did not.&lt;/p&gt;
+&lt;p&gt;NFS and OverlayFS did not play nice with each other. After a weekend trying to work around weird issues, I gave up.&lt;/p&gt;
+&lt;p&gt;But OverlayFS is not the only copy-on-write filesystem in existence, is it? ZFS and BTRFS offer &lt;a href=&#34;https://btrfs.wiki.kernel.org/index.php/Manpage/btrfs-subvolume&#34;&gt;subvolumes and snapshots&lt;/a&gt; that I can use instead. But not before I procrastinate spend 2 weeks deciding which one to use.&lt;/p&gt;
+&lt;h3 id=&#34;moving-to-btrfs&#34;&gt;Moving to BTRFS&lt;/h3&gt;
+&lt;p&gt;The plan is simple: I’ll create a subvolume each for raspbian-root and raspbian-boot. I’ll then create three snapshots of each subvolume - one for every node. I created a &lt;a href=&#34;https://en.wikipedia.org/wiki/RAS_syndrome&#34;&gt;btrfs file system&lt;/a&gt; on my external drive and ran the following commands&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ btrfs subvolume create raspbian-root
+$ btrfs subvolume create raspbian-boot
+
+&lt;span style=&#34;color:#75715e&#34;&gt;# Repeat the following for each node changing folder names as necessary&lt;/span&gt;
+$ btrfs subvolume snapshot raspbian-boot nog-boot
+$ btrfs subvolume snapshot raspbian-root nog-root
+$ mount --bind /mnt/nog-boot /tftpboot/dc-a6-32-XX-XX-XX
+$ mount --bind /mnt/nog-root /nfs/nog
+
+&lt;span style=&#34;color:#75715e&#34;&gt;# Don’t forget to edit cmdline.txt for each node&lt;/span&gt;
+$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;serial0,115200 console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tty1 root&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/nfs nfsroot&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&amp;lt;IP addr&amp;gt;:/nfs/nog,vers&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;4.1,proto&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tcp rw ip&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;dhcp rootwait elevator&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;deadline
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Well, this worked! Now all I have to do is create systemd unit files to start all required services and mount snapshots. I can finally start working on my project.&lt;/p&gt;
+&lt;p&gt;Wait a minute. Take a closer look at the output of &lt;code&gt;cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt&lt;/code&gt;.
+If you are like me, you will realize for the first time that &lt;code&gt;root=&lt;/code&gt; in this file defines where the root filesystem will be mounted from. Right now, we are telling it to mount from &lt;code&gt;/dev/nfs&lt;/code&gt;. What if I attach an external drive and set &lt;code&gt;root=&lt;/code&gt; to point to the external drive?&lt;/p&gt;
+&lt;h3 id=&#34;network-booting-into-an-external-drive-what&#34;&gt;Network booting into an external drive (what?)&lt;/h3&gt;
+&lt;p&gt;RPi 4 cannot directly boot from a USB drive. As in - it cannot find &lt;code&gt;/boot&lt;/code&gt; on a USB drive when powering on. But what if we provide &lt;code&gt;/boot&lt;/code&gt; with network boot and mount &lt;code&gt;/&lt;/code&gt; from a USB drive using &lt;code&gt;cmdline.txt&lt;/code&gt;? Time to test.&lt;/p&gt;
+&lt;p&gt;I copied raspbian-root to a USB drive, edited &lt;code&gt;etc/fstab&lt;/code&gt; to mount &lt;code&gt;/&lt;/code&gt; using the partition’s PARTUUID and connected it to Nog. I then updated the contents of &lt;code&gt;/tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt&lt;/code&gt;.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+ console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;serial0,115200 console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tty1 root&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;PARTUUID&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;c1f95d14-01 rootfstype&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;ext4 elevator&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;deadline fsck.repair&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;yes rootwait
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;After a couple of reboots, it worked! I now have a RPi 4 running off a USB hard drive!&lt;/p&gt;
+&lt;h3 id=&#34;what-did-i-gain&#34;&gt;What did I gain?&lt;/h3&gt;
+&lt;p&gt;Let’s look at some read/write performance numbers I got using the following commands:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ sync; dd &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/zero of&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;twogeefile bs&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;1M count&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;2048; sync
+$ sudo sh -c &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;sync &amp;amp;&amp;amp; echo 3 &amp;gt; /proc/sys/vm/drop_caches&amp;#34;&lt;/span&gt;
+$ dd &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;twogeefile of&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/null bs&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;1M count&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;2048&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Storage&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Read (MB/s)&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;Write (MB/s)&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Sandisk Ultra MicroSDXC Class 10&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;45.7&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;20.2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Network Boot with BTRFS&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;63.3&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;18.8&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;/&lt;/code&gt; mounted from external drive&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;113&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;92.7&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;That is a substantial improvement, I&amp;rsquo;d say.&lt;/p&gt;
+&lt;p&gt;Note that the external drives I used are old 5400RPM hard disks repurposed from old MacBooks. I bought them on eBay for $10 a pop. YMMV&lt;/p&gt;
+&lt;h3 id=&#34;current-setup&#34;&gt;Current setup&lt;/h3&gt;
+&lt;p&gt;Right now, I have Mandalore booting from an SD card and &lt;code&gt;/&lt;/code&gt; mounted from a USB hard disk. Nog, Ordo and Werda fetch &lt;code&gt;/boot&lt;/code&gt; from Mandalore over the network and &lt;code&gt;/&lt;/code&gt; mounted from a USB hard disk.&lt;/p&gt;
+&lt;p&gt;I can finally start working on my proj… wait, what?&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.tomshardware.com/how-to/boot-raspberry-pi-4-usb&#34;&gt;A new beta firmware is out for RPi 4 that lets you boot from USB drives directly.&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Oh well…&lt;/p&gt;
+&lt;p&gt;¯\_(ツ)_/¯&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
