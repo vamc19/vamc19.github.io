@@ -1,66 +1,172 @@
+:root {
+  
+  --border: 0.1rem solid hsl(0, 0%, 33%);
+  
+  /* light theme color */  
+  --light-background: #fff;
+  --light-link-color: #5bf;
+  --light-link-visited-color: #551a8b;
+  --light-font-color: black;
+  --light-inline-code-color: #eedd82;
+
+  /* dark theme colors */
+  --dark-background: #282828;
+  --dark-link-color: #5bf;
+  --dark-link-visited-color: #ccf;
+  --dark-font-color: white;
+  --dark-inline-code-color: #eedd82
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color: var(--dark-font-color);
+    background: var(--dark-background);
+  }
+  
+  a:link, header a:visited {
+    color: var(--dark-link-color);
+  }
+
+  a:visited {
+    color: var(--dark-link-visited-color);
+  }
+  
+  code:not([class]) {
+    color: var(--dark-inline-code-color);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  body {
+    color: var(--light-font-color);
+    background: var(--light-background);
+  }
+  
+  a:link, header a:visited {
+    color: var(--light-link-color);
+  }
+  
+  a:visited {
+    color: var(--light-link-visited-color);
+  }
+  
+  code:not([class]) {
+    color: var(--light-inline-code-color);
+    background: black;
+  }
+}
+
 body {
-    font-size: 18px;
-    line-height: 1.3em;
-    font-family: -apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", "Ubuntu", "Noto Sans", sans-serif;
-    margin: auto;
-    max-width: 50em;
-    padding: 1em;
+  max-width: 65rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-size: 1rem;
+  font-family: menlo, dejavu sans mono, courier new, monospace, serif;
 }
 
-pre {
-    font-size: 0.8em;
-    font-family: "Consolas", "Liberation Mono", "DejaVu Sans Mono", "Menlo", "SFMono-Regular", monospace;
-    white-space: pre;
-    overflow: auto;
-    padding: 1em;
+header {
+  height: 3rem;
+  padding-bottom: 0.8rem;
 }
 
-header b a {
-    font-size: 2em;
-    line-height: 1.4em;
-    color: black;
-    font-weight: lighter;
-    text-decoration: none;
-    display: inline-block;
+.site-header {
+  height: 2rem;
+  line-height: 2rem;
 }
 
-footer {
-    font-size: 0.8em;
-    line-height: 1.4em;
+.site-header span {
+  vertical-align:middle;
 }
 
-img, video {
-    max-width: 100%;
+.site-header a {
+  text-decoration: none;
 }
 
-article {
-    margin: 18px 0px;
+.site-title {
+  font-size: 1.4rem;
 }
 
-.title a {
-    text-decoration: none;
+.right-menu {
+  font-size: 1.1rem;
+  float: right;
 }
 
-.pubdate {
-    color: #555
+.menu-item {
+  padding: 0 0.5rem;
 }
 
-h2 {
-    font-size: 125%;
+.separator {
+  width: 100%;
+  height: 1rem;
+  position: relative;
+  overflow: hidden;
 }
 
-a {
-    color: #1360a7;
+h1, h2, h3 {
+  margin: 2rem 0rem 0.1rem 0rem;
+  padding: 0;
 }
 
-a:hover {
-    color: #398ad5;
+img {
+  max-width: 100%;
+  display: block;
+  padding: 1rem;
+  margin: 1rem auto;
 }
 
-tr:nth-child(odd) {
-    background-color: #eee;
+code {
+  white-space: pre;
 }
 
-tr:nth-child(even) {
-    background-color: #fff;
+table {
+  width: 100%;
+  border-collapse: collapse;
+  padding: 2px;
+  margin: 1rem auto;
 }
+
+table td, table th {
+  vertical-align: top;
+  border: var(--border);
+  line-height: 1rem;
+  padding: 0.6rem;
+}
+
+main {
+  padding: 0.6rem 0;
+}
+
+.post-header {
+  padding-bottom: 1rem;
+}
+
+.highlight {
+  margin: 1.5rem 0;
+}
+
+.highlight pre {
+  border: var(--border);
+  overflow: auto;
+  padding: 0.8rem;
+  margin: 0.5rem 0;
+}
+
+blockquote {
+  margin: 1rem;
+  padding: 1rem;
+  border: var(--border);
+}
+
+blockquote p {
+  margin: 0;
+}
+
+.post-list ul {
+  list-style-type: none;
+}
+
+.post-list li {
+  margin: 0.5rem 0;
+}
+
+
