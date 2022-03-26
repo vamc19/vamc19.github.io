@@ -1,6 +1,6 @@
 :root {
   
-  --border: 0.1rem solid hsl(0, 0%, 33%);
+  --border: 0.3rem solid hsl(0, 0%, 33%);
   
   /* light theme color */  
   --light-background: #fff;
@@ -154,7 +154,7 @@ main {
 blockquote {
   margin: 1rem;
   padding: 1rem;
-  border: var(--border);
+  border-left: var(--border);
 }
 
 blockquote p {
