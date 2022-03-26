@@ -10,12 +10,13 @@
     <title>Adventures in booting Linux on Raspberry Pi 4</title>
     
     <meta property="og:title" content="Adventures in booting Linux on Raspberry Pi 4" />
-<meta property="og:description" content="Update: This post was discussed on Hacker News. As jordybg points out, USB boot is no longer &ldquo;beta&rdquo; and is available in the latest (2020-06-15) &ldquo;stable&rdquo; firmware release.
- Almost two months ago, I started building a four node Raspberry Pi 4 cluster for a project I’m working on. Figuring out the best way to get Linux on each node lead me down a rabbit hole and I spent the next four weeks yak shaving." />
+<meta property="og:description" content="Almost two months ago, I started building a four node Raspberry Pi 4 cluster for a project I’m working on. Figuring out the best way to get Linux on each node lead me down a rabbit hole and I spent the next four weeks yak shaving.
+The most common way to boot a Pi is from an SD card. But they are slow and unreliable - I don&rsquo;t like them. Certain models of Pi 2 and Pi 3 support booting from USB storage, but Pi 4 cannot do that yet." />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="https://blog.mostlypointless.dev/posts/net-boot-rpi/" />
+<meta property="og:url" content="https://blog.mostlypointless.dev/posts/net-boot-rpi/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2020-06-26T00:00:00-07:00" />
 <meta property="article:modified_time" content="2020-06-26T00:00:00-07:00" />
+
 
     
     <link rel="stylesheet" href="https://blog.mostlypointless.dev/css/style.css">
@@ -60,10 +61,7 @@
       
     </div>
     
-    <blockquote>
-<p>Update: This post was discussed on <a href="https://news.ycombinator.com/item?id=23666564">Hacker News</a>. As jordybg <a href="https://news.ycombinator.com/item?id=23667247">points out</a>, USB boot is no longer &ldquo;beta&rdquo; and is available in the latest (2020-06-15) &ldquo;stable&rdquo; firmware release.</p>
-</blockquote>
-<p>Almost two months ago, I started building a four node Raspberry Pi 4 cluster for a project I’m working on. Figuring out the best way to get Linux on each node lead me down a rabbit hole and I spent the next four weeks <a href="http://www.catb.org/~esr/jargon/html/Y/yak-shaving.html">yak shaving</a>.</p>
+    <p>Almost two months ago, I started building a four node Raspberry Pi 4 cluster for a project I’m working on. Figuring out the best way to get Linux on each node lead me down a rabbit hole and I spent the next four weeks <a href="http://www.catb.org/~esr/jargon/html/Y/yak-shaving.html">yak shaving</a>.</p>
 <p>The most common way to boot a Pi is from an SD card. But they are slow and unreliable - I don&rsquo;t like them. Certain models of Pi 2 and Pi 3 support <a href="https://www.raspberrypi.org/documentation/hardware/raspberrypi/bootmodes/msd.md">booting from USB storage</a>, but Pi 4 cannot do that yet. So, I’m stuck with using an SD card for each Pi. Or so I thought.</p>
 <h3 id="enter-pxe-boot">Enter PXE boot</h3>
 <p>Turns out, Raspberry Pi 2 and 3 also <a href="https://www.raspberrypi.org/documentation/hardware/raspberrypi/bootmodes/net.md">support network booting</a>. A beta firmware was released late last year that enables <a href="https://en.wikipedia.org/wiki/Preboot_Execution_Environment">PXE</a> for Pi 4. I found <a href="https://linuxhit.com/raspberry-pi-pxe-boot-netbooting-a-pi-4-without-an-sd-card">an article on LinuxHit</a> detailing the process of installing the firmware and setting up network boot.</p>
@@ -76,49 +74,49 @@ Here is the gist of PXE server setup process:</p>
 <li>Edit the contents of <code>/nfs/raspbian-root/fstab</code> to mount the boot partition.</li>
 <li>Edit <code>/nfs/raspbian-boot/cmdline.txt</code> to</li>
 </ol>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#eedd82">console</span>=serial0,115200 <span style="color:#eedd82">console</span>=tty1 <span style="color:#eedd82">root</span>=/dev/nfs <span style="color:#eedd82">nfsroot</span>=&lt;IP addr&gt;:/nfs/raspbian-root,vers=4.1,proto=tcp rw <span style="color:#eedd82">ip</span>=dhcp rootwait <span style="color:#eedd82">elevator</span>=deadline
-</code></pre></div><h3 id="pxe-booting-3-nodes-using-overlayfs">PXE booting 3 nodes using OverlayFS</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>console<span style="color:#f92672">=</span>serial0,115200 console<span style="color:#f92672">=</span>tty1 root<span style="color:#f92672">=</span>/dev/nfs nfsroot<span style="color:#f92672">=</span>&lt;IP addr&gt;:/nfs/raspbian-root,vers<span style="color:#f92672">=</span>4.1,proto<span style="color:#f92672">=</span>tcp rw ip<span style="color:#f92672">=</span>dhcp rootwait elevator<span style="color:#f92672">=</span>deadline
+</span></span></code></pre></div><h3 id="pxe-booting-3-nodes-using-overlayfs">PXE booting 3 nodes using OverlayFS</h3>
 <p>I cannot just boot all three nodes from the same boot and root filesystems since they are not read-only. And I don’t want to maintain a copy of these for each node. But this is a solved problem - Docker already lets you spin up multiple containers from a single base image. So I&rsquo;ll just do <a href="https://docs.docker.com/storage/storagedriver/overlayfs-driver/#how-the-overlay2-driver-works">what Docker does</a> - create <a href="https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html">OverlayFS</a> for each node using raspbian-root and raspbian-boot as my lower directories. I’ll share them over NFS like before.</p>
 <p>Configuration for one of the nodes is below. Other two nodes follow the same pattern. Note that I moved raspbian-root and raspbian-boot to a USB hard drive (mounted at <code>/mnt</code>) to get better r/w performance. dc-a6-32-XX-XX-XX is the MAC address of the node. I&rsquo;m using <code>tftp-unique-root=mac</code> option in <code>dnsmasq</code> to maintain a separate boot environment for each node based on its MAC address.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ mount -t overlay nog-boot -o <span style="color:#eedd82">lowerdir</span>=/mnt/raspbian-boot,upperdir=/mnt/upper/nog-boot,workdir=/mnt/work/nog-boot -o <span style="color:#eedd82">nfs_export</span>=on -o <span style="color:#eedd82">index</span>=on -o <span style="color:#eedd82">redirect_dir</span>=nofollow /tftpboot/dc-a6-32-XX-XX-XX
-
-$ mount -t overlay nog-root -o <span style="color:#eedd82">lowerdir</span>=/mnt/raspbian-root,upperdir=/mnt/work/nog-root,workdir=/mnt/work/nog-root -o <span style="color:#eedd82">nfs_export</span>=on -o <span style="color:#eedd82">index</span>=on -o <span style="color:#eedd82">redirect_dir</span>=nofollow /nfs/nog
-
-$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
-<span style="color:#eedd82">console</span>=serial0,115200 <span style="color:#eedd82">console</span>=tty1 <span style="color:#eedd82">root</span>=/dev/nfs <span style="color:#eedd82">nfsroot</span>=&lt;IP addr&gt;:/nfs/nog,vers=4.1,proto=tcp rw <span style="color:#eedd82">ip</span>=dhcp rootwait <span style="color:#eedd82">elevator</span>=deadline
-</code></pre></div><p>(In case you are wondering what <code>nog</code> is: I name my servers after planets from the Star Wars universe. Following this tradition, I’ve named the Pis Mandalore (PXE server), Nog, Ordo and Werda)</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ mount -t overlay nog-boot -o lowerdir<span style="color:#f92672">=</span>/mnt/raspbian-boot,upperdir<span style="color:#f92672">=</span>/mnt/upper/nog-boot,workdir<span style="color:#f92672">=</span>/mnt/work/nog-boot -o nfs_export<span style="color:#f92672">=</span>on -o index<span style="color:#f92672">=</span>on -o redirect_dir<span style="color:#f92672">=</span>nofollow /tftpboot/dc-a6-32-XX-XX-XX
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ mount -t overlay nog-root -o lowerdir<span style="color:#f92672">=</span>/mnt/raspbian-root,upperdir<span style="color:#f92672">=</span>/mnt/work/nog-root,workdir<span style="color:#f92672">=</span>/mnt/work/nog-root -o nfs_export<span style="color:#f92672">=</span>on -o index<span style="color:#f92672">=</span>on -o redirect_dir<span style="color:#f92672">=</span>nofollow /nfs/nog
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+</span></span><span style="display:flex;"><span>console<span style="color:#f92672">=</span>serial0,115200 console<span style="color:#f92672">=</span>tty1 root<span style="color:#f92672">=</span>/dev/nfs nfsroot<span style="color:#f92672">=</span>&lt;IP addr&gt;:/nfs/nog,vers<span style="color:#f92672">=</span>4.1,proto<span style="color:#f92672">=</span>tcp rw ip<span style="color:#f92672">=</span>dhcp rootwait elevator<span style="color:#f92672">=</span>deadline
+</span></span></code></pre></div><p>(In case you are wondering what <code>nog</code> is: I name my servers after planets from the Star Wars universe. Following this tradition, I’ve named the Pis Mandalore (PXE server), Nog, Ordo and Werda)</p>
 <p>You are probably thinking that this worked. It did not.</p>
 <p>NFS and OverlayFS did not play nice with each other. After a weekend trying to work around some weird issues, I gave up.</p>
 <p>But OverlayFS is not the only copy-on-write filesystem in existence, is it? ZFS and BTRFS offer <a href="https://btrfs.wiki.kernel.org/index.php/Manpage/btrfs-subvolume">subvolumes and snapshots</a> that I can use instead. But not before I <del>procrastinate</del> spend 2 weeks deciding which one to use.</p>
 <h3 id="moving-to-btrfs">Moving to BTRFS</h3>
 <p>The plan is simple: I’ll create a subvolume each for raspbian-root and raspbian-boot. I’ll then create three snapshots of each subvolume - one for every node. I created a <a href="https://en.wikipedia.org/wiki/RAS_syndrome">btrfs file system</a> on my external drive and ran the following commands</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ btrfs subvolume create raspbian-root
-$ btrfs subvolume create raspbian-boot
-
-<span style="color:#0f0"># Repeat the following for each node changing folder names as necessary</span>
-$ btrfs subvolume snapshot raspbian-boot nog-boot
-$ btrfs subvolume snapshot raspbian-root nog-root
-$ mount --bind /mnt/nog-boot /tftpboot/dc-a6-32-XX-XX-XX
-$ mount --bind /mnt/nog-root /nfs/nog
-
-<span style="color:#0f0"># Don’t forget to edit cmdline.txt for each node</span>
-$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
-<span style="color:#eedd82">console</span>=serial0,115200 <span style="color:#eedd82">console</span>=tty1 <span style="color:#eedd82">root</span>=/dev/nfs <span style="color:#eedd82">nfsroot</span>=&lt;IP addr&gt;:/nfs/nog,vers=4.1,proto=tcp rw <span style="color:#eedd82">ip</span>=dhcp rootwait <span style="color:#eedd82">elevator</span>=deadline
-</code></pre></div><p>Well, this worked! I have a Pi running without an SD card!! Now all I have to do is create systemd unit files to start all required services and mount snapshots. I can finally start working on my project.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ btrfs subvolume create raspbian-root
+</span></span><span style="display:flex;"><span>$ btrfs subvolume create raspbian-boot
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Repeat the following for each node changing folder names as necessary</span>
+</span></span><span style="display:flex;"><span>$ btrfs subvolume snapshot raspbian-boot nog-boot
+</span></span><span style="display:flex;"><span>$ btrfs subvolume snapshot raspbian-root nog-root
+</span></span><span style="display:flex;"><span>$ mount --bind /mnt/nog-boot /tftpboot/dc-a6-32-XX-XX-XX
+</span></span><span style="display:flex;"><span>$ mount --bind /mnt/nog-root /nfs/nog
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Don’t forget to edit cmdline.txt for each node</span>
+</span></span><span style="display:flex;"><span>$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+</span></span><span style="display:flex;"><span>console<span style="color:#f92672">=</span>serial0,115200 console<span style="color:#f92672">=</span>tty1 root<span style="color:#f92672">=</span>/dev/nfs nfsroot<span style="color:#f92672">=</span>&lt;IP addr&gt;:/nfs/nog,vers<span style="color:#f92672">=</span>4.1,proto<span style="color:#f92672">=</span>tcp rw ip<span style="color:#f92672">=</span>dhcp rootwait elevator<span style="color:#f92672">=</span>deadline
+</span></span></code></pre></div><p>Well, this worked! I have a Pi running without an SD card!! Now all I have to do is create systemd unit files to start all required services and mount snapshots. I can finally start working on my project.</p>
 <p>Wait a minute. Take a closer look at the output of <code>cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt</code>.
 If you are like me, you will realize for the first time that <code>root=</code> in this file defines where the root filesystem will be mounted from. Right now, we are telling it to mount from <code>/dev/nfs</code>. What if I attach an external drive and set <code>root=</code> to point to the external drive?</p>
 <h3 id="network-booting-into-a-usb-hard-drive">Network booting into a USB hard drive</h3>
 <p>RPi 4 cannot directly boot from a USB drive. As in - it cannot find <code>/boot</code> on a USB drive when powering on. But what if we provide <code>/boot</code> with network boot and mount <code>/</code> from a USB drive using <code>cmdline.txt</code>? Time to test.</p>
 <p>I copied raspbian-root to a USB drive, edited <code>fstab</code> to mount <code>/</code> using the partition’s PARTUUID and connected it to Nog. I then updated the contents of <code>/tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt</code>.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
- <span style="color:#eedd82">console</span>=serial0,115200 <span style="color:#eedd82">console</span>=tty1 <span style="color:#eedd82">root</span>=<span style="color:#eedd82">PARTUUID</span>=c1f95d14-01 <span style="color:#eedd82">rootfstype</span>=ext4 <span style="color:#eedd82">elevator</span>=deadline fsck.repair=yes rootwait
-</code></pre></div><p>After a couple of reboots, it worked! I now have a RPi 4 running off a USB hard drive!</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+</span></span><span style="display:flex;"><span> console<span style="color:#f92672">=</span>serial0,115200 console<span style="color:#f92672">=</span>tty1 root<span style="color:#f92672">=</span>PARTUUID<span style="color:#f92672">=</span>c1f95d14-01 rootfstype<span style="color:#f92672">=</span>ext4 elevator<span style="color:#f92672">=</span>deadline fsck.repair<span style="color:#f92672">=</span>yes rootwait
+</span></span></code></pre></div><p>After a couple of reboots, it worked! I now have a RPi 4 running off a USB hard drive!</p>
 <h3 id="what-did-i-gain">What did I gain?</h3>
 <p>Let&rsquo;s start with what I was looking for. All I wanted was to not deal with SD cards because they are slow and unreliable. Reliability is relative - everything fails at some point. But a decent quality USB hard drive will likely outlive an SD card. So let’s just look at some read/write performance numbers and see how they compare.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ sync; dd <span style="color:#f00">if</span>=/dev/zero <span style="color:#eedd82">of</span>=twogeefile <span style="color:#eedd82">bs</span>=1M <span style="color:#eedd82">count</span>=2048; sync  <span style="color:#0f0"># Write performance</span>
-$ sudo sh -c <span style="color:#87ceeb">&#34;sync &amp;&amp; echo 3 &gt; /proc/sys/vm/drop_caches&#34;</span>
-$ dd <span style="color:#f00">if</span>=twogeefile <span style="color:#eedd82">of</span>=/dev/null <span style="color:#eedd82">bs</span>=1M <span style="color:#eedd82">count</span>=<span style="color:#f60">2048</span>              <span style="color:#0f0"># Read performance</span>
-</code></pre></div><table>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ sync; dd <span style="color:#66d9ef">if</span><span style="color:#f92672">=</span>/dev/zero of<span style="color:#f92672">=</span>twogeefile bs<span style="color:#f92672">=</span>1M count<span style="color:#f92672">=</span>2048; sync  <span style="color:#75715e"># Write performance</span>
+</span></span><span style="display:flex;"><span>$ sudo sh -c <span style="color:#e6db74">&#34;sync &amp;&amp; echo 3 &gt; /proc/sys/vm/drop_caches&#34;</span>
+</span></span><span style="display:flex;"><span>$ dd <span style="color:#66d9ef">if</span><span style="color:#f92672">=</span>twogeefile of<span style="color:#f92672">=</span>/dev/null bs<span style="color:#f92672">=</span>1M count<span style="color:#f92672">=</span><span style="color:#ae81ff">2048</span>              <span style="color:#75715e"># Read performance</span>
+</span></span></code></pre></div><table>
 <thead>
 <tr>
 <th>Storage</th>
@@ -153,6 +151,7 @@ $ dd <span style="color:#f00">if</span>=twogeefile <span style="color:#eedd82">o
 <p><a href="https://www.tomshardware.com/how-to/boot-raspberry-pi-4-usb">A new beta firmware is out for RPi 4 that lets you boot from USB drives directly.</a></p>
 <p>Oh well…</p>
 <p>¯\_(ツ)_/¯</p>
+<p><em><strong>Update:</strong> This post was discussed on <a href="https://news.ycombinator.com/item?id=23666564">Hacker News</a>. As jordybg <a href="https://news.ycombinator.com/item?id=23667247">points out</a>, USB boot is no longer &ldquo;beta&rdquo; and is available in the latest (2020-06-15) &ldquo;stable&rdquo; firmware release.</em></p>
 
     
   </article>

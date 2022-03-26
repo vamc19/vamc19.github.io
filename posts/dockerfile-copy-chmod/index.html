@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    
+    <title>`COPY --chmod` reduced the size of my container image by 35%</title>
+    
+    <meta property="og:title" content="`COPY --chmod` reduced the size of my container image by 35%" />
+<meta property="og:description" content="Earlier this week, I was writing a Dockerfile to download and run a binary when I noticed the image size was way more than what I would expect. I&rsquo;m using ubuntu:21.10 as the base image, which is about 70MB. The binary I&rsquo;m running is about 80MB. Other packages I&rsquo;m installing would add 10-ish MB. But the image size is 267MB?
+Clearly I&rsquo;m doing something wrong. But what? My Dockerfile is fairly simple and, what I considered, idiomatic:" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.mostlypointless.dev/posts/dockerfile-copy-chmod/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-03-25T00:00:00-07:00" />
+<meta property="article:modified_time" content="2022-03-25T00:00:00-07:00" />
+
+
+    
+    <link rel="stylesheet" href="https://blog.mostlypointless.dev/css/style.css">
+  </head>
+
+  <body>
+    <header>
+  <div class="site-header">
+    <span> 
+      <a href="https://blog.mostlypointless.dev/" class="site-title">a (mostly) pointless blog</a>
+    </span>
+    <span>
+      <nav class="right-menu">
+			    
+			      
+			        <span class="menu-item">/<a href="/">home</a></span>
+			      
+			        <span class="menu-item">/<a href="https://github.com/vamc19">github</a></span>
+			      
+			        <span class="menu-item">/<a href="/index.xml">rss</a></span>
+			      
+			    
+	    </nav>
+	  </span>
+	</div>
+	
+	<div class="separator"> ================================================================================================================================================================ </div>
+</header>
+
+	  
+<main>
+  <article>
+    <div class="post-header">
+      <h1>`COPY --chmod` reduced the size of my container image by 35%</h1>
+      
+        <span class="pubdate"> Mar 25, 2022</span>
+        
+          <a href="/tags/containers">containers</a>
+        
+      
+    </div>
+    
+    <p>Earlier this week, I was writing a Dockerfile to download and run a binary when I noticed the image size was way more
+than what I would expect. I&rsquo;m using ubuntu:21.10 as the base image, which is about 70MB. The binary I&rsquo;m running
+is about 80MB. Other packages I&rsquo;m installing would add 10-ish MB. But the image size is 267MB?</p>
+<p>Clearly I&rsquo;m doing something wrong. But what? My Dockerfile is fairly simple and, what I considered, idiomatic:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Dockerfile" data-lang="Dockerfile"><span style="display:flex;"><span><span style="color:#66d9ef">FROM</span><span style="color:#e6db74"> ubuntu:21.10 AS downloader</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#75715e"># Install wget, gnupg; download a zip archive; verify checksum; unzip the binary</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">FROM</span><span style="color:#e6db74"> ubuntu:21.10</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">LABEL</span> ...<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> --from<span style="color:#f92672">=</span>downloader /bin/&lt;binary&gt; /bin/&lt;binary&gt;<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> apt-get update <span style="color:#f92672">&amp;&amp;</span> apt-get install -y openssl dumb-init iproute2 ca-certificates  <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>    <span style="color:#f92672">&amp;&amp;</span> rm -rf /var/lib/apt/lists/* <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>    <span style="color:#f92672">&amp;&amp;</span> chmod +x /bin/&lt;binary&gt;<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span>    <span style="color:#f92672">&amp;&amp;</span> mkdir -p &lt;couple of empty directories&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>    <span style="color:#f92672">&amp;&amp;</span> ...<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span>...<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></div><p>I checked the history of the image to see the size of individual layers. The problem became very apparent&hellip;</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cmd" data-lang="cmd"><span style="display:flex;"><span>$ podman history vamc19/nomad:latest 
+</span></span><span style="display:flex;"><span>ID            CREATED             CREATED BY                                     SIZE        COMMENT
+</span></span><span style="display:flex;"><span>...    
+</span></span><span style="display:flex;"><span>&lt;missing&gt;     36 minutes ago      /bin/sh -c apt-get update &amp;&amp; apt-get insta...  94.4 MB     
+</span></span><span style="display:flex;"><span>374515aec770  36 minutes ago      /bin/sh -c # (nop) COPY file:6dbfa42743cc65... 87.7 MB     
+</span></span><span style="display:flex;"><span>22cd380ad224  36 minutes ago      /bin/sh -c # (nop) LABEL maintainer=<span style="color:#e6db74">&#34;Vamsi&#34;</span>... 0 B          FROM docker.io/library/ubuntu:21.10
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>The layer created by <code>COPY</code> is 87.7MB, which is exactly the size of the extracted binary. So, that is normal. Why is the
+layer created by <code>RUN</code> 94.4MB? What am I doing in it? I&rsquo;m creating a couple of empty directories, running <code>chmod</code> on the
+binary and installing 4 packages. Apt says the packages would only consume ~6MB of additional disk space and it is very
+unlikely that these packages would do anything crazy post install. So, is <code>chmod</code> creating a problem?</p>
+<p>To quickly test this, I removed <code>chmod</code> from <code>RUN</code> and rebuilt the image. And bingo - the image size is down to 174MB.
+And the <code>RUN</code> layer&rsquo;s size is down to 6.7MB. So, OverlayFS is copying the binary into <code>RUN</code> layer even though <code>chmod</code> is
+only updating the metadata of the file&hellip;?</p>
+<p>My understanding of CoW filesystems is very superficial - unless I write to a file, the filesystem would never
+copy the file to upper layer. And since chmod is not writing to the binary (did file&rsquo;s hash change?), it should not be
+copied, correct? Obviously not. Honestly, I never thought about it. I looked up <a href="https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html#non-directories">OverlayFS&rsquo; documentation</a>.</p>
+<blockquote>
+<p>When a file in the lower filesystem is accessed in a way the requires write-access, such as opening for write access,
+<strong><em>changing some metadata</em></strong> etc., the file is first copied from the lower filesystem to the upper filesystem (copy_up).</p>
+</blockquote>
+<p>Well, I have been doing it wrong all these years. I&rsquo;ve written a lot of Dockerfiles with shell scripts in <code>COPY</code> and
+<code>chmod</code> in <code>RUN</code>. Maybe I never realized this because these files are usually very small to make a noticable difference
+in the image size.</p>
+<p>So what&rsquo;s the solution? In my case, since I&rsquo;m using Podman (which uses Buildah), I can use <code>--chmod</code> arg with <code>COPY</code> to
+copy a file and set proper permissions in the same layer. If you are using Docker, it is <a href="https://github.com/moby/moby/issues/34819#issuecomment-697130379">availabe</a> in
+BuildKit.</p>
+<p>Note that any metadata update will lead to the same result - not just <code>chmod</code>. Both Docker and Podman already support
+<code>--chown</code> for both <code>COPY</code> and <code>ADD</code>. Maybe this should be added to the <a href="https://docs.docker.com/develop/develop-images/dockerfile_best-practices">Dockerfile Best Practices</a> page.</p>
+<p> </p>
+<p>PS: If you are wondering why a metadata update would make OverlayFS duplicate the entire file, it is for security
+reasons. You can enable <a href="https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html#metadata-only-copy-up">&ldquo;metadata only copy up&rdquo;</a> feature which will only copy the metadata instead
+of the whole file.</p>
+<blockquote>
+<p>Do not use metacopy=on with untrusted upper/lower directories. Otherwise it is possible that an attacker can create a
+handcrafted file with appropriate REDIRECT and METACOPY xattrs, and gain access to file on lower pointed by REDIRECT.
+This should not be possible on local system as setting “trusted.” xattrs will require CAP_SYS_ADMIN. But it should be
+possible for untrusted layers like from a pen drive.</p>
+</blockquote>
+
+    
+  </article>
+</main>
+
+	  <hr/>
+<footer>
+    Except where noted otherwise, content on this website is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a><br>
+Built with <a href="https://gohugo.io">Hugo</a> | Hosted on <a href="https://pages.github.com">Github Pages</a> | Github&rsquo;s <a href="https://github.com/site/privacy">Privacy Policy</a>
+</footer>
+
+
+  </body>
+   
+</html>

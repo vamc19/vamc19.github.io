@@ -11,15 +11,79 @@
     
     
     <item>
+      <title>`COPY --chmod` reduced the size of my container image by 35%</title>
+      <link>https://blog.mostlypointless.dev/posts/dockerfile-copy-chmod/</link>
+      <pubDate>Fri, 25 Mar 2022 00:00:00 -0700</pubDate>
+      
+      <guid>https://blog.mostlypointless.dev/posts/dockerfile-copy-chmod/</guid>
+      <description>&lt;p&gt;Earlier this week, I was writing a Dockerfile to download and run a binary when I noticed the image size was way more
+than what I would expect. I&amp;rsquo;m using ubuntu:21.10 as the base image, which is about 70MB. The binary I&amp;rsquo;m running
+is about 80MB. Other packages I&amp;rsquo;m installing would add 10-ish MB. But the image size is 267MB?&lt;/p&gt;
+&lt;p&gt;Clearly I&amp;rsquo;m doing something wrong. But what? My Dockerfile is fairly simple and, what I considered, idiomatic:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-Dockerfile&#34; data-lang=&#34;Dockerfile&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;FROM&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; ubuntu:21.10 AS downloader&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Install wget, gnupg; download a zip archive; verify checksum; unzip the binary&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;FROM&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; ubuntu:21.10&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;LABEL&lt;/span&gt; ...&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;COPY&lt;/span&gt; --from&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;downloader /bin/&amp;lt;binary&amp;gt; /bin/&amp;lt;binary&amp;gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;RUN&lt;/span&gt; apt-get update &lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; apt-get install -y openssl dumb-init iproute2 ca-certificates  &lt;span style=&#34;color:#ae81ff&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; rm -rf /var/lib/apt/lists/* &lt;span style=&#34;color:#ae81ff&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; chmod +x /bin/&amp;lt;binary&amp;gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; mkdir -p &amp;lt;couple of empty directories&amp;gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; ...&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&lt;/span&gt;...&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;I checked the history of the image to see the size of individual layers. The problem became very apparent&amp;hellip;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-cmd&#34; data-lang=&#34;cmd&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ podman history vamc19/nomad:latest 
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;ID            CREATED             CREATED BY                                     SIZE        COMMENT
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;...    
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&amp;lt;missing&amp;gt;     36 minutes ago      /bin/sh -c apt-get update &amp;amp;&amp;amp; apt-get insta...  94.4 MB     
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;374515aec770  36 minutes ago      /bin/sh -c # (nop) COPY file:6dbfa42743cc65... 87.7 MB     
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;22cd380ad224  36 minutes ago      /bin/sh -c # (nop) LABEL maintainer=&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Vamsi&amp;#34;&lt;/span&gt;... 0 B          FROM docker.io/library/ubuntu:21.10
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;...
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;The layer created by &lt;code&gt;COPY&lt;/code&gt; is 87.7MB, which is exactly the size of the extracted binary. So, that is normal. Why is the
+layer created by &lt;code&gt;RUN&lt;/code&gt; 94.4MB? What am I doing in it? I&amp;rsquo;m creating a couple of empty directories, running &lt;code&gt;chmod&lt;/code&gt; on the
+binary and installing 4 packages. Apt says the packages would only consume ~6MB of additional disk space and it is very
+unlikely that these packages would do anything crazy post install. So, is &lt;code&gt;chmod&lt;/code&gt; creating a problem?&lt;/p&gt;
+&lt;p&gt;To quickly test this, I removed &lt;code&gt;chmod&lt;/code&gt; from &lt;code&gt;RUN&lt;/code&gt; and rebuilt the image. And bingo - the image size is down to 174MB.
+And the &lt;code&gt;RUN&lt;/code&gt; layer&amp;rsquo;s size is down to 6.7MB. So, OverlayFS is copying the binary into &lt;code&gt;RUN&lt;/code&gt; layer even though &lt;code&gt;chmod&lt;/code&gt; is
+only updating the metadata of the file&amp;hellip;?&lt;/p&gt;
+&lt;p&gt;My understanding of CoW filesystems is very superficial - unless I write to a file, the filesystem would never
+copy the file to upper layer. And since chmod is not writing to the binary (did file&amp;rsquo;s hash change?), it should not be
+copied, correct? Obviously not. Honestly, I never thought about it. I looked up &lt;a href=&#34;https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html#non-directories&#34;&gt;OverlayFS&amp;rsquo; documentation&lt;/a&gt;.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;When a file in the lower filesystem is accessed in a way the requires write-access, such as opening for write access,
+&lt;strong&gt;&lt;em&gt;changing some metadata&lt;/em&gt;&lt;/strong&gt; etc., the file is first copied from the lower filesystem to the upper filesystem (copy_up).&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Well, I have been doing it wrong all these years. I&amp;rsquo;ve written a lot of Dockerfiles with shell scripts in &lt;code&gt;COPY&lt;/code&gt; and
+&lt;code&gt;chmod&lt;/code&gt; in &lt;code&gt;RUN&lt;/code&gt;. Maybe I never realized this because these files are usually very small to make a noticable difference
+in the image size.&lt;/p&gt;
+&lt;p&gt;So what&amp;rsquo;s the solution? In my case, since I&amp;rsquo;m using Podman (which uses Buildah), I can use &lt;code&gt;--chmod&lt;/code&gt; arg with &lt;code&gt;COPY&lt;/code&gt; to
+copy a file and set proper permissions in the same layer. If you are using Docker, it is &lt;a href=&#34;https://github.com/moby/moby/issues/34819#issuecomment-697130379&#34;&gt;availabe&lt;/a&gt; in
+BuildKit.&lt;/p&gt;
+&lt;p&gt;Note that any metadata update will lead to the same result - not just &lt;code&gt;chmod&lt;/code&gt;. Both Docker and Podman already support
+&lt;code&gt;--chown&lt;/code&gt; for both &lt;code&gt;COPY&lt;/code&gt; and &lt;code&gt;ADD&lt;/code&gt;. Maybe this should be added to the &lt;a href=&#34;https://docs.docker.com/develop/develop-images/dockerfile_best-practices&#34;&gt;Dockerfile Best Practices&lt;/a&gt; page.&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;p&gt;PS: If you are wondering why a metadata update would make OverlayFS duplicate the entire file, it is for security
+reasons. You can enable &lt;a href=&#34;https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html#metadata-only-copy-up&#34;&gt;&amp;ldquo;metadata only copy up&amp;rdquo;&lt;/a&gt; feature which will only copy the metadata instead
+of the whole file.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Do not use metacopy=on with untrusted upper/lower directories. Otherwise it is possible that an attacker can create a
+handcrafted file with appropriate REDIRECT and METACOPY xattrs, and gain access to file on lower pointed by REDIRECT.
+This should not be possible on local system as setting “trusted.” xattrs will require CAP_SYS_ADMIN. But it should be
+possible for untrusted layers like from a pen drive.&lt;/p&gt;
+&lt;/blockquote&gt;
+</description>
+    </item>
+    
+    <item>
       <title>Adventures in booting Linux on Raspberry Pi 4</title>
       <link>https://blog.mostlypointless.dev/posts/net-boot-rpi/</link>
       <pubDate>Fri, 26 Jun 2020 00:00:00 -0700</pubDate>
       
       <guid>https://blog.mostlypointless.dev/posts/net-boot-rpi/</guid>
-      <description>&lt;blockquote&gt;
-&lt;p&gt;Update: This post was discussed on &lt;a href=&#34;https://news.ycombinator.com/item?id=23666564&#34;&gt;Hacker News&lt;/a&gt;. As jordybg &lt;a href=&#34;https://news.ycombinator.com/item?id=23667247&#34;&gt;points out&lt;/a&gt;, USB boot is no longer &amp;ldquo;beta&amp;rdquo; and is available in the latest (2020-06-15) &amp;ldquo;stable&amp;rdquo; firmware release.&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;Almost two months ago, I started building a four node Raspberry Pi 4 cluster for a project I’m working on. Figuring out the best way to get Linux on each node lead me down a rabbit hole and I spent the next four weeks &lt;a href=&#34;http://www.catb.org/~esr/jargon/html/Y/yak-shaving.html&#34;&gt;yak shaving&lt;/a&gt;.&lt;/p&gt;
+      <description>&lt;p&gt;Almost two months ago, I started building a four node Raspberry Pi 4 cluster for a project I’m working on. Figuring out the best way to get Linux on each node lead me down a rabbit hole and I spent the next four weeks &lt;a href=&#34;http://www.catb.org/~esr/jargon/html/Y/yak-shaving.html&#34;&gt;yak shaving&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;The most common way to boot a Pi is from an SD card. But they are slow and unreliable - I don&amp;rsquo;t like them. Certain models of Pi 2 and Pi 3 support &lt;a href=&#34;https://www.raspberrypi.org/documentation/hardware/raspberrypi/bootmodes/msd.md&#34;&gt;booting from USB storage&lt;/a&gt;, but Pi 4 cannot do that yet. So, I’m stuck with using an SD card for each Pi. Or so I thought.&lt;/p&gt;
 &lt;h3 id=&#34;enter-pxe-boot&#34;&gt;Enter PXE boot&lt;/h3&gt;
 &lt;p&gt;Turns out, Raspberry Pi 2 and 3 also &lt;a href=&#34;https://www.raspberrypi.org/documentation/hardware/raspberrypi/bootmodes/net.md&#34;&gt;support network booting&lt;/a&gt;. A beta firmware was released late last year that enables &lt;a href=&#34;https://en.wikipedia.org/wiki/Preboot_Execution_Environment&#34;&gt;PXE&lt;/a&gt; for Pi 4. I found &lt;a href=&#34;https://linuxhit.com/raspberry-pi-pxe-boot-netbooting-a-pi-4-without-an-sd-card&#34;&gt;an article on LinuxHit&lt;/a&gt; detailing the process of installing the firmware and setting up network boot.&lt;/p&gt;
@@ -32,49 +96,49 @@ Here is the gist of PXE server setup process:&lt;/p&gt;
 &lt;li&gt;Edit the contents of &lt;code&gt;/nfs/raspbian-root/fstab&lt;/code&gt; to mount the boot partition.&lt;/li&gt;
 &lt;li&gt;Edit &lt;code&gt;/nfs/raspbian-boot/cmdline.txt&lt;/code&gt; to&lt;/li&gt;
 &lt;/ol&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#eedd82&#34;&gt;console&lt;/span&gt;=serial0,115200 &lt;span style=&#34;color:#eedd82&#34;&gt;console&lt;/span&gt;=tty1 &lt;span style=&#34;color:#eedd82&#34;&gt;root&lt;/span&gt;=/dev/nfs &lt;span style=&#34;color:#eedd82&#34;&gt;nfsroot&lt;/span&gt;=&amp;lt;IP addr&amp;gt;:/nfs/raspbian-root,vers=4.1,proto=tcp rw &lt;span style=&#34;color:#eedd82&#34;&gt;ip&lt;/span&gt;=dhcp rootwait &lt;span style=&#34;color:#eedd82&#34;&gt;elevator&lt;/span&gt;=deadline
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;pxe-booting-3-nodes-using-overlayfs&#34;&gt;PXE booting 3 nodes using OverlayFS&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;serial0,115200 console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tty1 root&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/nfs nfsroot&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&amp;lt;IP addr&amp;gt;:/nfs/raspbian-root,vers&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;4.1,proto&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tcp rw ip&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;dhcp rootwait elevator&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;deadline
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;pxe-booting-3-nodes-using-overlayfs&#34;&gt;PXE booting 3 nodes using OverlayFS&lt;/h3&gt;
 &lt;p&gt;I cannot just boot all three nodes from the same boot and root filesystems since they are not read-only. And I don’t want to maintain a copy of these for each node. But this is a solved problem - Docker already lets you spin up multiple containers from a single base image. So I&amp;rsquo;ll just do &lt;a href=&#34;https://docs.docker.com/storage/storagedriver/overlayfs-driver/#how-the-overlay2-driver-works&#34;&gt;what Docker does&lt;/a&gt; - create &lt;a href=&#34;https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html&#34;&gt;OverlayFS&lt;/a&gt; for each node using raspbian-root and raspbian-boot as my lower directories. I’ll share them over NFS like before.&lt;/p&gt;
 &lt;p&gt;Configuration for one of the nodes is below. Other two nodes follow the same pattern. Note that I moved raspbian-root and raspbian-boot to a USB hard drive (mounted at &lt;code&gt;/mnt&lt;/code&gt;) to get better r/w performance. dc-a6-32-XX-XX-XX is the MAC address of the node. I&amp;rsquo;m using &lt;code&gt;tftp-unique-root=mac&lt;/code&gt; option in &lt;code&gt;dnsmasq&lt;/code&gt; to maintain a separate boot environment for each node based on its MAC address.&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ mount -t overlay nog-boot -o &lt;span style=&#34;color:#eedd82&#34;&gt;lowerdir&lt;/span&gt;=/mnt/raspbian-boot,upperdir=/mnt/upper/nog-boot,workdir=/mnt/work/nog-boot -o &lt;span style=&#34;color:#eedd82&#34;&gt;nfs_export&lt;/span&gt;=on -o &lt;span style=&#34;color:#eedd82&#34;&gt;index&lt;/span&gt;=on -o &lt;span style=&#34;color:#eedd82&#34;&gt;redirect_dir&lt;/span&gt;=nofollow /tftpboot/dc-a6-32-XX-XX-XX
-
-$ mount -t overlay nog-root -o &lt;span style=&#34;color:#eedd82&#34;&gt;lowerdir&lt;/span&gt;=/mnt/raspbian-root,upperdir=/mnt/work/nog-root,workdir=/mnt/work/nog-root -o &lt;span style=&#34;color:#eedd82&#34;&gt;nfs_export&lt;/span&gt;=on -o &lt;span style=&#34;color:#eedd82&#34;&gt;index&lt;/span&gt;=on -o &lt;span style=&#34;color:#eedd82&#34;&gt;redirect_dir&lt;/span&gt;=nofollow /nfs/nog
-
-$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
-&lt;span style=&#34;color:#eedd82&#34;&gt;console&lt;/span&gt;=serial0,115200 &lt;span style=&#34;color:#eedd82&#34;&gt;console&lt;/span&gt;=tty1 &lt;span style=&#34;color:#eedd82&#34;&gt;root&lt;/span&gt;=/dev/nfs &lt;span style=&#34;color:#eedd82&#34;&gt;nfsroot&lt;/span&gt;=&amp;lt;IP addr&amp;gt;:/nfs/nog,vers=4.1,proto=tcp rw &lt;span style=&#34;color:#eedd82&#34;&gt;ip&lt;/span&gt;=dhcp rootwait &lt;span style=&#34;color:#eedd82&#34;&gt;elevator&lt;/span&gt;=deadline
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;(In case you are wondering what &lt;code&gt;nog&lt;/code&gt; is: I name my servers after planets from the Star Wars universe. Following this tradition, I’ve named the Pis Mandalore (PXE server), Nog, Ordo and Werda)&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ mount -t overlay nog-boot -o lowerdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/raspbian-boot,upperdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/upper/nog-boot,workdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/work/nog-boot -o nfs_export&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;on -o index&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;on -o redirect_dir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;nofollow /tftpboot/dc-a6-32-XX-XX-XX
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ mount -t overlay nog-root -o lowerdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/raspbian-root,upperdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/work/nog-root,workdir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/mnt/work/nog-root -o nfs_export&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;on -o index&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;on -o redirect_dir&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;nofollow /nfs/nog
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;serial0,115200 console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tty1 root&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/nfs nfsroot&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&amp;lt;IP addr&amp;gt;:/nfs/nog,vers&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;4.1,proto&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tcp rw ip&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;dhcp rootwait elevator&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;deadline
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;(In case you are wondering what &lt;code&gt;nog&lt;/code&gt; is: I name my servers after planets from the Star Wars universe. Following this tradition, I’ve named the Pis Mandalore (PXE server), Nog, Ordo and Werda)&lt;/p&gt;
 &lt;p&gt;You are probably thinking that this worked. It did not.&lt;/p&gt;
 &lt;p&gt;NFS and OverlayFS did not play nice with each other. After a weekend trying to work around some weird issues, I gave up.&lt;/p&gt;
 &lt;p&gt;But OverlayFS is not the only copy-on-write filesystem in existence, is it? ZFS and BTRFS offer &lt;a href=&#34;https://btrfs.wiki.kernel.org/index.php/Manpage/btrfs-subvolume&#34;&gt;subvolumes and snapshots&lt;/a&gt; that I can use instead. But not before I &lt;del&gt;procrastinate&lt;/del&gt; spend 2 weeks deciding which one to use.&lt;/p&gt;
 &lt;h3 id=&#34;moving-to-btrfs&#34;&gt;Moving to BTRFS&lt;/h3&gt;
 &lt;p&gt;The plan is simple: I’ll create a subvolume each for raspbian-root and raspbian-boot. I’ll then create three snapshots of each subvolume - one for every node. I created a &lt;a href=&#34;https://en.wikipedia.org/wiki/RAS_syndrome&#34;&gt;btrfs file system&lt;/a&gt; on my external drive and ran the following commands&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ btrfs subvolume create raspbian-root
-$ btrfs subvolume create raspbian-boot
-
-&lt;span style=&#34;color:#0f0&#34;&gt;# Repeat the following for each node changing folder names as necessary&lt;/span&gt;
-$ btrfs subvolume snapshot raspbian-boot nog-boot
-$ btrfs subvolume snapshot raspbian-root nog-root
-$ mount --bind /mnt/nog-boot /tftpboot/dc-a6-32-XX-XX-XX
-$ mount --bind /mnt/nog-root /nfs/nog
-
-&lt;span style=&#34;color:#0f0&#34;&gt;# Don’t forget to edit cmdline.txt for each node&lt;/span&gt;
-$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
-&lt;span style=&#34;color:#eedd82&#34;&gt;console&lt;/span&gt;=serial0,115200 &lt;span style=&#34;color:#eedd82&#34;&gt;console&lt;/span&gt;=tty1 &lt;span style=&#34;color:#eedd82&#34;&gt;root&lt;/span&gt;=/dev/nfs &lt;span style=&#34;color:#eedd82&#34;&gt;nfsroot&lt;/span&gt;=&amp;lt;IP addr&amp;gt;:/nfs/nog,vers=4.1,proto=tcp rw &lt;span style=&#34;color:#eedd82&#34;&gt;ip&lt;/span&gt;=dhcp rootwait &lt;span style=&#34;color:#eedd82&#34;&gt;elevator&lt;/span&gt;=deadline
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Well, this worked! I have a Pi running without an SD card!! Now all I have to do is create systemd unit files to start all required services and mount snapshots. I can finally start working on my project.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ btrfs subvolume create raspbian-root
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ btrfs subvolume create raspbian-boot
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Repeat the following for each node changing folder names as necessary&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ btrfs subvolume snapshot raspbian-boot nog-boot
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ btrfs subvolume snapshot raspbian-root nog-root
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ mount --bind /mnt/nog-boot /tftpboot/dc-a6-32-XX-XX-XX
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ mount --bind /mnt/nog-root /nfs/nog
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Don’t forget to edit cmdline.txt for each node&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;serial0,115200 console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tty1 root&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/nfs nfsroot&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&amp;lt;IP addr&amp;gt;:/nfs/nog,vers&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;4.1,proto&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tcp rw ip&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;dhcp rootwait elevator&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;deadline
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Well, this worked! I have a Pi running without an SD card!! Now all I have to do is create systemd unit files to start all required services and mount snapshots. I can finally start working on my project.&lt;/p&gt;
 &lt;p&gt;Wait a minute. Take a closer look at the output of &lt;code&gt;cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt&lt;/code&gt;.
 If you are like me, you will realize for the first time that &lt;code&gt;root=&lt;/code&gt; in this file defines where the root filesystem will be mounted from. Right now, we are telling it to mount from &lt;code&gt;/dev/nfs&lt;/code&gt;. What if I attach an external drive and set &lt;code&gt;root=&lt;/code&gt; to point to the external drive?&lt;/p&gt;
 &lt;h3 id=&#34;network-booting-into-a-usb-hard-drive&#34;&gt;Network booting into a USB hard drive&lt;/h3&gt;
 &lt;p&gt;RPi 4 cannot directly boot from a USB drive. As in - it cannot find &lt;code&gt;/boot&lt;/code&gt; on a USB drive when powering on. But what if we provide &lt;code&gt;/boot&lt;/code&gt; with network boot and mount &lt;code&gt;/&lt;/code&gt; from a USB drive using &lt;code&gt;cmdline.txt&lt;/code&gt;? Time to test.&lt;/p&gt;
 &lt;p&gt;I copied raspbian-root to a USB drive, edited &lt;code&gt;fstab&lt;/code&gt; to mount &lt;code&gt;/&lt;/code&gt; using the partition’s PARTUUID and connected it to Nog. I then updated the contents of &lt;code&gt;/tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt&lt;/code&gt;.&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
- &lt;span style=&#34;color:#eedd82&#34;&gt;console&lt;/span&gt;=serial0,115200 &lt;span style=&#34;color:#eedd82&#34;&gt;console&lt;/span&gt;=tty1 &lt;span style=&#34;color:#eedd82&#34;&gt;root&lt;/span&gt;=&lt;span style=&#34;color:#eedd82&#34;&gt;PARTUUID&lt;/span&gt;=c1f95d14-01 &lt;span style=&#34;color:#eedd82&#34;&gt;rootfstype&lt;/span&gt;=ext4 &lt;span style=&#34;color:#eedd82&#34;&gt;elevator&lt;/span&gt;=deadline fsck.repair=yes rootwait
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;After a couple of reboots, it worked! I now have a RPi 4 running off a USB hard drive!&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ cat /tftpboot/dc-a6-32-XX-XX-XX/cmdline.txt
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;serial0,115200 console&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;tty1 root&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;PARTUUID&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;c1f95d14-01 rootfstype&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;ext4 elevator&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;deadline fsck.repair&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;yes rootwait
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;After a couple of reboots, it worked! I now have a RPi 4 running off a USB hard drive!&lt;/p&gt;
 &lt;h3 id=&#34;what-did-i-gain&#34;&gt;What did I gain?&lt;/h3&gt;
 &lt;p&gt;Let&amp;rsquo;s start with what I was looking for. All I wanted was to not deal with SD cards because they are slow and unreliable. Reliability is relative - everything fails at some point. But a decent quality USB hard drive will likely outlive an SD card. So let’s just look at some read/write performance numbers and see how they compare.&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;$ sync; dd &lt;span style=&#34;color:#f00&#34;&gt;if&lt;/span&gt;=/dev/zero &lt;span style=&#34;color:#eedd82&#34;&gt;of&lt;/span&gt;=twogeefile &lt;span style=&#34;color:#eedd82&#34;&gt;bs&lt;/span&gt;=1M &lt;span style=&#34;color:#eedd82&#34;&gt;count&lt;/span&gt;=2048; sync  &lt;span style=&#34;color:#0f0&#34;&gt;# Write performance&lt;/span&gt;
-$ sudo sh -c &lt;span style=&#34;color:#87ceeb&#34;&gt;&amp;#34;sync &amp;amp;&amp;amp; echo 3 &amp;gt; /proc/sys/vm/drop_caches&amp;#34;&lt;/span&gt;
-$ dd &lt;span style=&#34;color:#f00&#34;&gt;if&lt;/span&gt;=twogeefile &lt;span style=&#34;color:#eedd82&#34;&gt;of&lt;/span&gt;=/dev/null &lt;span style=&#34;color:#eedd82&#34;&gt;bs&lt;/span&gt;=1M &lt;span style=&#34;color:#eedd82&#34;&gt;count&lt;/span&gt;=&lt;span style=&#34;color:#f60&#34;&gt;2048&lt;/span&gt;              &lt;span style=&#34;color:#0f0&#34;&gt;# Read performance&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;table&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ sync; dd &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/zero of&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;twogeefile bs&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;1M count&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;2048; sync  &lt;span style=&#34;color:#75715e&#34;&gt;# Write performance&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ sudo sh -c &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;sync &amp;amp;&amp;amp; echo 3 &amp;gt; /proc/sys/vm/drop_caches&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ dd &lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;twogeefile of&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;/dev/null bs&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;1M count&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;2048&lt;/span&gt;              &lt;span style=&#34;color:#75715e&#34;&gt;# Read performance&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;table&gt;
 &lt;thead&gt;
 &lt;tr&gt;
 &lt;th&gt;Storage&lt;/th&gt;
@@ -109,6 +173,7 @@ $ dd &lt;span style=&#34;color:#f00&#34;&gt;if&lt;/span&gt;=twogeefile &lt;span 
 &lt;p&gt;&lt;a href=&#34;https://www.tomshardware.com/how-to/boot-raspberry-pi-4-usb&#34;&gt;A new beta firmware is out for RPi 4 that lets you boot from USB drives directly.&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;Oh well…&lt;/p&gt;
 &lt;p&gt;¯\_(ツ)_/¯&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Update:&lt;/strong&gt; This post was discussed on &lt;a href=&#34;https://news.ycombinator.com/item?id=23666564&#34;&gt;Hacker News&lt;/a&gt;. As jordybg &lt;a href=&#34;https://news.ycombinator.com/item?id=23667247&#34;&gt;points out&lt;/a&gt;, USB boot is no longer &amp;ldquo;beta&amp;rdquo; and is available in the latest (2020-06-15) &amp;ldquo;stable&amp;rdquo; firmware release.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
     
