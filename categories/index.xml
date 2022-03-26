@@ -1,11 +1,11 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Categories on a (mostly) pointless blog</title>
-    <link>https://blog.mostlypointless.dev/categories/</link>
+    <link>https://blog.vamc19.dev/categories/</link>
     
     <language>en-us</language>
     
-    <atom:link href="https://blog.mostlypointless.dev/categories/" rel="self" type="application/rss+xml" />
+    <atom:link href="https://blog.vamc19.dev/categories/" rel="self" type="application/rss+xml" />
     
     
     

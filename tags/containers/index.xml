@@ -1,21 +1,21 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>containers on a (mostly) pointless blog</title>
-    <link>https://blog.mostlypointless.dev/tags/containers/</link>
+    <link>https://blog.vamc19.dev/tags/containers/</link>
     
     <language>en-us</language>
     
     
-    <atom:link href="https://blog.mostlypointless.dev/tags/containers/" rel="self" type="application/rss+xml" />
+    <atom:link href="https://blog.vamc19.dev/tags/containers/" rel="self" type="application/rss+xml" />
     
     
     
     <item>
       <title>`COPY --chmod` reduced the size of my container image by 35%</title>
-      <link>https://blog.mostlypointless.dev/posts/dockerfile-copy-chmod/</link>
+      <link>https://blog.vamc19.dev/posts/dockerfile-copy-chmod/</link>
       <pubDate>Fri, 25 Mar 2022 00:00:00 -0700</pubDate>
       
-      <guid>https://blog.mostlypointless.dev/posts/dockerfile-copy-chmod/</guid>
+      <guid>https://blog.vamc19.dev/posts/dockerfile-copy-chmod/</guid>
       <description>&lt;p&gt;Earlier this week, I was writing a Dockerfile to download and run a binary when I noticed the image size was way more
 than what I would expect. I&amp;rsquo;m using ubuntu:21.10 as the base image, which is about 70MB. The binary I&amp;rsquo;m running
 is about 80MB. Other packages I&amp;rsquo;m installing would add 10-ish MB. But the image size is 267MB?&lt;/p&gt;
