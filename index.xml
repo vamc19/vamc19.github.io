@@ -57,10 +57,10 @@ copied, correct? Obviously not. Honestly, I never thought about it. I looked up 
 &lt;strong&gt;&lt;em&gt;changing some metadata&lt;/em&gt;&lt;/strong&gt; etc., the file is first copied from the lower filesystem to the upper filesystem (copy_up).&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;Well, I have been doing it wrong all these years. I&amp;rsquo;ve written a lot of Dockerfiles with shell scripts in &lt;code&gt;COPY&lt;/code&gt; and
-&lt;code&gt;chmod&lt;/code&gt; in &lt;code&gt;RUN&lt;/code&gt;. Maybe I never realized this because these files are usually very small to make a noticable difference
+&lt;code&gt;chmod&lt;/code&gt; in &lt;code&gt;RUN&lt;/code&gt;. Maybe I never realized this because these files are usually very small to make a noticeable difference
 in the image size.&lt;/p&gt;
 &lt;p&gt;So what&amp;rsquo;s the solution? In my case, since I&amp;rsquo;m using Podman (which uses Buildah), I can use &lt;code&gt;--chmod&lt;/code&gt; arg with &lt;code&gt;COPY&lt;/code&gt; to
-copy a file and set proper permissions in the same layer. If you are using Docker, it is &lt;a href=&#34;https://github.com/moby/moby/issues/34819#issuecomment-697130379&#34;&gt;availabe&lt;/a&gt; in
+copy a file and set proper permissions in the same layer. If you are using Docker, it is &lt;a href=&#34;https://github.com/moby/moby/issues/34819#issuecomment-697130379&#34;&gt;available&lt;/a&gt; in
 BuildKit.&lt;/p&gt;
 &lt;p&gt;Note that any metadata update will lead to the same result - not just &lt;code&gt;chmod&lt;/code&gt;. Both Docker and Podman already support
 &lt;code&gt;--chown&lt;/code&gt; for both &lt;code&gt;COPY&lt;/code&gt; and &lt;code&gt;ADD&lt;/code&gt;. Maybe this should be added to the &lt;a href=&#34;https://docs.docker.com/develop/develop-images/dockerfile_best-practices&#34;&gt;Dockerfile Best Practices&lt;/a&gt; page.&lt;/p&gt;
@@ -74,6 +74,8 @@ handcrafted file with appropriate REDIRECT and METACOPY xattrs, and gain access 
 This should not be possible on local system as setting “trusted.” xattrs will require CAP_SYS_ADMIN. But it should be
 possible for untrusted layers like from a pen drive.&lt;/p&gt;
 &lt;/blockquote&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;p&gt;Update: This post was discussed on &lt;a href=&#34;https://news.ycombinator.com/item?id=30808945&#34;&gt;Hacker News&lt;/a&gt; and &lt;a href=&#34;https://lobste.rs/s/6i3lci/copy_chmod_reduced_size_my_container&#34;&gt;Lobsters&lt;/a&gt;&lt;/p&gt;
 </description>
     </item>
     

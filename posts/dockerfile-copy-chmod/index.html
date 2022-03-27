@@ -100,10 +100,10 @@ copied, correct? Obviously not. Honestly, I never thought about it. I looked up 
 <strong><em>changing some metadata</em></strong> etc., the file is first copied from the lower filesystem to the upper filesystem (copy_up).</p>
 </blockquote>
 <p>Well, I have been doing it wrong all these years. I&rsquo;ve written a lot of Dockerfiles with shell scripts in <code>COPY</code> and
-<code>chmod</code> in <code>RUN</code>. Maybe I never realized this because these files are usually very small to make a noticable difference
+<code>chmod</code> in <code>RUN</code>. Maybe I never realized this because these files are usually very small to make a noticeable difference
 in the image size.</p>
 <p>So what&rsquo;s the solution? In my case, since I&rsquo;m using Podman (which uses Buildah), I can use <code>--chmod</code> arg with <code>COPY</code> to
-copy a file and set proper permissions in the same layer. If you are using Docker, it is <a href="https://github.com/moby/moby/issues/34819#issuecomment-697130379">availabe</a> in
+copy a file and set proper permissions in the same layer. If you are using Docker, it is <a href="https://github.com/moby/moby/issues/34819#issuecomment-697130379">available</a> in
 BuildKit.</p>
 <p>Note that any metadata update will lead to the same result - not just <code>chmod</code>. Both Docker and Podman already support
 <code>--chown</code> for both <code>COPY</code> and <code>ADD</code>. Maybe this should be added to the <a href="https://docs.docker.com/develop/develop-images/dockerfile_best-practices">Dockerfile Best Practices</a> page.</p>
@@ -117,6 +117,8 @@ handcrafted file with appropriate REDIRECT and METACOPY xattrs, and gain access 
 This should not be possible on local system as setting “trusted.” xattrs will require CAP_SYS_ADMIN. But it should be
 possible for untrusted layers like from a pen drive.</p>
 </blockquote>
+<p> </p>
+<p>Update: This post was discussed on <a href="https://news.ycombinator.com/item?id=30808945">Hacker News</a> and <a href="https://lobste.rs/s/6i3lci/copy_chmod_reduced_size_my_container">Lobsters</a></p>
 
     
   </article>
